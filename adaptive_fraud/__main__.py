@@ -80,11 +80,15 @@ def cmd_watch(args: argparse.Namespace) -> int:
     for reason in cold.reasons:
         print(f"      - {reason}")
 
-    # And with nothing known at all - the genuine blind spot.
+    # And with nothing known at all.
     empty = AdaptiveEngine().assess(probe)
     print(f"\n  against an empty system that has never seen anyone -> "
           f"{empty.decision.value.upper()} (score {empty.score})")
-    print("      - the very first transaction in a deployment is unjudgeable, by construction")
+    if empty.decision is Decision.APPROVE:
+        print("      - nothing known, nothing flagged: the genuine cold-start blind spot")
+    else:
+        print("      - flagged only by the hard-coded fallback (a generic median and a wide")
+        print("        spread), not by anything learned. A weak guess, not an informed one.")
     return 0
 
 
