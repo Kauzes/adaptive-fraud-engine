@@ -29,22 +29,18 @@ class ColdStartTests(unittest.TestCase):
         engine = AdaptiveEngine()
         _, a = engine.submit(tx(amount=120.0))
 
-        # Nothing is known about anyone yet; refusing here would break every new account.
         self.assertIs(a.decision, Decision.APPROVE)
         self.assertEqual(a.confidence, 0.0)
 
     def test_blank_customer_is_still_protected_by_the_population_prior(self):
         engine = AdaptiveEngine()
-        # Build a population of ordinary spenders.
         for c in range(12):
             teach(engine, customer=f"pop{c}", n=8, amount=100.0)
 
-        # A brand-new customer's very first act is a huge transfer.
         _, a = engine.submit(tx("newcomer", amount=90_000.0))
 
         self.assertNotEqual(a.decision, Decision.APPROVE)
         self.assertTrue(any(s.code == "AMOUNT" for s in a.signals))
-        # It was caught with no personal history whatsoever.
         self.assertEqual(a.confidence, 0.0)
 
     def test_confidence_rises_as_history_accumulates(self):
@@ -58,15 +54,12 @@ class ColdStartTests(unittest.TestCase):
 class LearningTests(unittest.TestCase):
     def test_engine_learns_what_is_normal_for_this_person(self):
         engine = AdaptiveEngine()
-        # A big spender, consistently.
         teach(engine, customer="whale", n=40, amount=5_000.0)
-        # And a small one.
         teach(engine, customer="minnow", n=40, amount=40.0)
 
         _, whale = engine.submit(tx("whale", amount=5_200.0, at=BASE + timedelta(days=60)))
         _, minnow = engine.submit(tx("minnow", amount=5_200.0, at=BASE + timedelta(days=60)))
 
-        # Identical amount, opposite verdicts — learned, never configured.
         self.assertIs(whale.decision, Decision.APPROVE)
         self.assertNotEqual(minnow.decision, Decision.APPROVE)
 
@@ -84,12 +77,7 @@ class LearningTests(unittest.TestCase):
         self.assertGreater(late_bits, early_bits)
 
     def test_a_step_change_stays_flagged_while_nobody_reviews_it(self):
-        """A real limitation, asserted rather than glossed over.
-
-        Flagged transactions are deliberately not learned from, so a customer whose
-        habits genuinely change stays flagged until a human clears one. Adaptation to
-        legitimate change requires the analyst; the engine cannot do it alone.
-        """
+        """A real limitation, asserted rather than glossed over."""
         engine = AdaptiveEngine()
         teach(engine, n=30, amount=100.0)
 
@@ -103,7 +91,6 @@ class LearningTests(unittest.TestCase):
         engine = AdaptiveEngine()
         teach(engine, n=30, amount=100.0)
 
-        # The same step change, but now an analyst rules on whatever gets flagged.
         for i in range(12):
             handle, a = engine.submit(tx(amount=800.0, at=BASE + timedelta(days=40 + i)))
             if a.decision is not Decision.APPROVE:
@@ -119,12 +106,10 @@ class PoisoningTests(unittest.TestCase):
         teach(engine, n=40, amount=100.0)
         before = engine.profile_for("c1").log_amount.mean
 
-        # Force-absorb an extreme amount as though it had been approved.
         profile = engine.profile_for("c1")
         profile.learn(500_000.0, BASE + timedelta(days=50), "phone-1", "TR", engine.prior)
         after = profile.log_amount.mean
 
-        # Clipping bounds the damage; without it this single point moves the mean hugely.
         self.assertLess(after - before, 0.5)
 
     def test_flagged_transactions_are_not_learned_until_an_analyst_clears_them(self):
@@ -149,7 +134,7 @@ class FeedbackTests(unittest.TestCase):
         for i in range(6):
             handle, a = engine.submit(tx(amount=900.0, at=BASE + timedelta(days=60 + i)))
             if a.decision is not Decision.APPROVE:
-                engine.resolve(handle, approved=True)  # analyst says it was fine
+                engine.resolve(handle, approved=True)
 
         end_review, _ = engine.tuner.thresholds()
         self.assertGreater(end_review, start_review)
@@ -208,7 +193,6 @@ class ExplainabilityTests(unittest.TestCase):
         self.assertNotEqual(a.decision, Decision.APPROVE)
         self.assertTrue(a.reasons)
         self.assertTrue(all(r.strip() for r in a.reasons))
-        # The score is exactly the sum of its parts — no hidden term.
         self.assertAlmostEqual(a.score, round(sum(s.bits for s in a.signals), 2), places=2)
 
 

@@ -45,7 +45,6 @@ def cmd_watch(args: argparse.Namespace) -> int:
                   f"{assessment.confidence:>6.2f} {assessment.score:>7.2f}  "
                   f"{assessment.decision.value}")
 
-    # The same suspicious payment, judged against three different states of knowledge.
     when = (START + timedelta(days=args.transactions + 1)).replace(hour=3, minute=0)
     probe = Transaction(
         customer_id="watched",
@@ -63,8 +62,6 @@ def cmd_watch(args: argparse.Namespace) -> int:
     for reason in verdict.reasons:
         print(f"      - {reason}")
 
-    # A blank customer inside a bank that already has other customers: the realistic
-    # cold-start case, and the one the population prior exists for.
     populated = AdaptiveEngine()
     for i in range(20):
         other = SimulatedCustomer(f"other-{i}", ARCHETYPES[i % len(ARCHETYPES)],
@@ -80,7 +77,6 @@ def cmd_watch(args: argparse.Namespace) -> int:
     for reason in cold.reasons:
         print(f"      - {reason}")
 
-    # And with nothing known at all.
     empty = AdaptiveEngine().assess(probe)
     print(f"\n  against an empty system that has never seen anyone -> "
           f"{empty.decision.value.upper()} (score {empty.score})")

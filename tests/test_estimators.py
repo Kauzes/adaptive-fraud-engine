@@ -23,7 +23,6 @@ class RunningStatsTests(unittest.TestCase):
         self.assertAlmostEqual(stats.variance, expected_var, places=10)
 
     def test_stays_precise_where_the_naive_formula_collapses(self):
-        # Large offset, tiny spread: sum-of-squares cancellation territory.
         values = [1e9 + d for d in (1.0, 2.0, 3.0, 4.0)]
         stats = RunningStats()
         for v in values:
@@ -50,7 +49,6 @@ class EwmaStatsTests(unittest.TestCase):
             ewma.update(100.0)
             running.update(100.0)
 
-        # The customer now reliably spends 100; EWMA should have followed much closer.
         self.assertGreater(ewma.mean, 95.0)
         self.assertLess(running.mean, 50.0)
 
@@ -71,7 +69,6 @@ class CircularHourProfileTests(unittest.TestCase):
         for _ in range(30):
             profile.update(23)
 
-        # 00:00 borrows from the 23:00 peak; 12:00 does not.
         self.assertGreater(profile.probability(0), profile.probability(12))
 
     def test_unseen_hour_is_more_surprising_than_a_habitual_one(self):
@@ -83,7 +80,6 @@ class CircularHourProfileTests(unittest.TestCase):
 
     def test_uniform_prior_before_any_observation(self):
         profile = CircularHourProfile()
-        # No data: every hour equally (un)likely, so surprisal is log2(24).
         self.assertAlmostEqual(profile.surprisal(0), math.log2(24), places=6)
         self.assertAlmostEqual(profile.surprisal(13), math.log2(24), places=6)
 

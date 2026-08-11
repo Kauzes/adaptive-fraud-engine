@@ -1,9 +1,4 @@
-"""Synthetic customers with known fraud injected, so results can be measured.
-
-The archetypes below are invisible to the engine — they exist only to generate plausible
-behaviour and to label it. Nothing in `adaptive_fraud.engine` knows a "student" exists;
-it sees an anonymous stream and has to work the baseline out for itself.
-"""
+"""Synthetic customers with known fraud injected, so results can be measured."""
 from __future__ import annotations
 
 import math
@@ -54,8 +49,6 @@ class SimulatedCustomer:
 
     def __post_init__(self) -> None:
         self.countries = [self.archetype.home_country]
-        # Business owners genuinely transact abroad, which is the hard case: the engine
-        # must learn that it is normal for them and abnormal for a retiree.
         if self.archetype.name == "business":
             self.countries += list(self.rng.sample(FOREIGN, 2))
 
@@ -83,7 +76,6 @@ class SimulatedCustomer:
             episode="legit",
         )
 
-    # ------------------------------------------------------------ fraud episodes
 
     def account_takeover(self, when: datetime) -> list[LabelledTransaction]:
         """Stolen credentials: unfamiliar device and country, draining fast."""
@@ -129,12 +121,7 @@ class SimulatedCustomer:
         ]
 
     def escalation(self, when: datetime) -> list[LabelledTransaction]:
-        """The patient attack: start small from a new device, climb steadily.
-
-        This is the episode that specifically targets a learning system — each step is
-        only slightly odd relative to the last, so an unguarded baseline follows the
-        fraudster upward. It is the reason updates are clipped.
-        """
+        """The patient attack: start small from a new device, climb steadily."""
         device = f"creep-{self.rng.randrange(1000)}"
         out = []
         amount = self.archetype.median_amount * 1.5
@@ -164,12 +151,7 @@ def generate_stream(
     days: int = 120,
     fraud_rate: float = 0.18,
 ) -> list[LabelledTransaction]:
-    """A time-ordered stream of labelled transactions.
-
-    Fraud only ever starts after a customer has some history, because that is the
-    realistic case and because scoring an attack against an empty profile would measure
-    the cold-start policy rather than the detector.
-    """
+    """A time-ordered stream of labelled transactions. Fraud only starts once a customer has history."""
     rng = random.Random(seed)
     people = [
         SimulatedCustomer(

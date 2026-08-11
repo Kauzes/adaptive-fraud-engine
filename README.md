@@ -9,7 +9,7 @@ not learned."* Here nothing is hand-tuned. The score is derived from the model, 
 thresholds move on their own.
 
 It stays explainable. Every decision comes with the specific reasons that produced it, and
-the score is exactly the sum of its parts — no hidden term, no black box.
+the score is exactly the sum of its parts - no hidden term, no black box.
 
 ```
 $ python -m adaptive_fraud watch --archetype student
@@ -49,7 +49,7 @@ Two separate effects, deliberately measured apart:
   *raising* recall from 29.8% to 69.2%. A single limit is hopeless because it flags every
   business owner constantly and still misses fraud against small spenders.
 - **Adaptive thresholds** add a smaller, real gain on top: recall 59.8% → 69.2% with slightly
-  fewer false alarms. Not a trade-off — better on both axes.
+  fewer false alarms. Not a trade-off - better on both axes.
 
 Reproduce with `python -m adaptive_fraud evaluate`.
 
@@ -57,7 +57,7 @@ Reproduce with `python -m adaptive_fraud evaluate`.
 
 ### Scoring in bits of surprise
 
-Signals are measured in **bits of surprise** — the negative log probability of what was
+Signals are measured in **bits of surprise** - the negative log probability of what was
 observed under the current model. Bits are additive across independent signals, so a total
 score needs no invented weights; the numbers come out of the model itself.
 
@@ -89,7 +89,7 @@ which behaviour suddenly changes.
 
 ### Online estimation
 
-Everything updates in O(1) time and memory — an unbounded stream cannot be re-scanned.
+Everything updates in O(1) time and memory - an unbounded stream cannot be re-scanned.
 
 - **Welford's algorithm** for mean and variance. The naive sum-of-squares formula loses
   catastrophic precision when variance is small relative to the mean, which is exactly the
@@ -101,7 +101,7 @@ Everything updates in O(1) time and memory — an unbounded stream cannot be re-
 
 ### The feedback loop
 
-Analysts already rule on flagged transactions, so the labels are free — no annotation project
+Analysts already rule on flagged transactions, so the labels are free - no annotation project
 required. Each ruling moves the thresholds:
 
 | Event | Meaning | Response |
@@ -111,7 +111,7 @@ required. Each ruling moves the thresholds:
 | Fraud surfaces after auto-approval | false negative | lower the bar, weighted 1.5x |
 
 False negatives are weighted harder because the costs are not symmetric: an annoyed customer
-is cheaper than a drained account. This is a proportional controller, not a learned model —
+is cheaper than a drained account. This is a proportional controller, not a learned model -
 deliberately, so the thresholds stay two inspectable numbers with an audit trail.
 
 ### Resisting poisoning
@@ -121,7 +121,7 @@ you, then take everything. Three defences:
 
 1. **Flagged transactions are never learned from** until a human clears them.
 2. **Updates are clipped** to ±2.5 sd, so no single transaction can drag the baseline.
-3. **Analyst-approved transactions skip the clip** — once a person has vouched for it, the
+3. **Analyst-approved transactions skip the clip** - once a person has vouched for it, the
    unattended-baseline threat model no longer applies, and clipping would only block the
    engine from absorbing a genuine change like a pay rise.
 
@@ -137,7 +137,7 @@ python -m adaptive_fraud evaluate                     # reproduce the results ta
 python -m unittest discover -s tests -t .             # 41 tests
 ```
 
-## Honest limitations
+## Limitations
 
 The numbers above come from **simulated data, not real fraud**. That buys ground-truth labels
 you cannot get otherwise, and it means the results measure the engine against my own model of
@@ -151,7 +151,7 @@ how fraud looks. Specifically:
   eight runs; there is a test (`test_single_seeds_vary_enough_to_mislead`) whose only job is to
   keep this caveat honest.
 - **The population prior only catches egregious cold-start fraud.** A brand-new customer's
-  720 payment scores 1.56 bits — below the review threshold — because the population mixes
+  720 payment scores 1.56 bits - below the review threshold - because the population mixes
   students with business owners. It catches a 90,000 transfer, not a merely suspicious one.
   A production system would segment the prior rather than pooling everyone.
 - **A step change stays flagged until someone reviews it.** Adaptation to legitimate change
@@ -179,9 +179,9 @@ be tested directly rather than only through the engine.
 
 ## Related
 
-- [fraud-detection-engine](https://github.com/Kauzes/fraud-detection-engine) — rule-based, per-user statistics, Python + REST
-- [sentinel-pay-android](https://github.com/Kauzes/sentinel-pay-android) — per-profile thresholds, native Android
+- [fraud-detection-engine](https://github.com/Kauzes/fraud-detection-engine) - rule-based, per-user statistics, Python + REST
+- [sentinel-pay-android](https://github.com/Kauzes/sentinel-pay-android) - per-profile thresholds, native Android
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).

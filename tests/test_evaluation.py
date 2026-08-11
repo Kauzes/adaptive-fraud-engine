@@ -3,7 +3,6 @@ import unittest
 from adaptive_fraud.evaluate import Scorecard, evaluate, evaluate_pooled, run_global_rule
 from adaptive_fraud.simulation import generate_stream
 
-# Small enough to keep the suite fast, large enough for the comparisons to mean something.
 SMALL = dict(customers=24, days=60)
 
 
@@ -53,8 +52,6 @@ class SimulationTests(unittest.TestCase):
             if not item.is_fraud:
                 first_legit.setdefault(cid, item.transaction.timestamp)
             else:
-                # Scoring an attack against an empty profile would measure the
-                # cold-start policy rather than the detector.
                 self.assertIn(cid, first_legit)
 
 
@@ -86,13 +83,7 @@ class ScorecardTests(unittest.TestCase):
 
 
 class ComparisonTests(unittest.TestCase):
-    """Regression tests on the claims the README makes.
-
-    These pool several seeds, because that is the form the claims take. Fraud is rare
-    enough that any single simulation swings by tens of percentage points of recall -
-    see `test_single_seeds_vary_enough_to_mislead` below, which exists to stop anyone
-    (including me) quoting a one-seed number as though it were stable.
-    """
+    """Regression tests on the claims the README makes."""
 
     @classmethod
     def setUpClass(cls):
@@ -117,13 +108,10 @@ class ComparisonTests(unittest.TestCase):
             evaluate(seed=s, **SMALL)["learned_adaptive"].recall
             for s in (11, 12, 13, 14)
         ]
-        # Guards the honesty of the README: if this spread ever collapses the caveat
-        # about per-seed variance can go, but while it holds the caveat must stay.
         self.assertGreater(max(recalls) - min(recalls), 0.1)
 
     def test_a_global_limit_drowns_analysts_in_false_alarms(self):
         naive = run_global_rule(generate_stream(seed=11, **SMALL))
-        # Flagging every large payment means flagging every business customer, constantly.
         self.assertGreater(naive.false_positive_rate, 0.05)
 
     def test_every_transaction_is_accounted_for_exactly_once(self):

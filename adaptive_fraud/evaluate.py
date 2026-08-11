@@ -58,12 +58,7 @@ class Scorecard:
         )
 
     def merge(self, other: "Scorecard") -> "Scorecard":
-        """Pool counts across runs.
-
-        Fraud is rare, so a single seed yields only a few dozen positives and its recall
-        swings wildly. Pooling raw counts across seeds - rather than averaging the ratios -
-        weights each transaction equally and gives a figure worth quoting.
-        """
+        """Pool counts across runs."""
         return Scorecard(
             name=self.name,
             true_positives=self.true_positives + other.true_positives,
@@ -75,11 +70,7 @@ class Scorecard:
 
 
 class GlobalRuleBaseline:
-    """The naive control: one absolute amount limit for everybody.
-
-    This is what a system without per-customer baselines looks like, and it is the
-    comparison that shows whether personalisation earns its complexity.
-    """
+    """The naive control: one absolute amount limit for everybody."""
 
     def __init__(self, limit: float = 3_000.0) -> None:
         self.limit = limit
@@ -89,12 +80,7 @@ class GlobalRuleBaseline:
 
 
 def run_adaptive(stream: list[LabelledTransaction], adaptive_thresholds: bool, name: str) -> Scorecard:
-    """Replay the stream, with a simulated analyst closing the feedback loop.
-
-    The analyst is assumed correct: they approve legitimate flagged transactions and
-    reject fraudulent ones. That is generous, but it isolates the question being asked —
-    whether the engine improves *given* reliable feedback.
-    """
+    """Replay the stream, with a simulated analyst closing the feedback loop."""
     tuner = ThresholdTuner() if adaptive_thresholds else StaticThresholds()
     engine = AdaptiveEngine(tuner=tuner)
     card = Scorecard(name)
@@ -110,7 +96,6 @@ def run_adaptive(stream: list[LabelledTransaction], adaptive_thresholds: bool, n
         elif assessment.decision is Decision.REJECT:
             engine.resolve(handle, approved=False if item.is_fraud else True)
         elif item.is_fraud:
-            # Auto-approved fraud surfaces later as a chargeback.
             engine.report_missed_fraud(assessment.score)
 
     return card

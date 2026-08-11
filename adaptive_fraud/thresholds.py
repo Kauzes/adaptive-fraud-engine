@@ -6,17 +6,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class ThresholdTuner:
-    """Moves the review and reject boundaries in response to human decisions.
-
-    This is a proportional controller, not a learned model, and that is deliberate: the
-    thresholds stay two inspectable numbers with an audit trail of why they moved. The
-    signal comes from the analyst queue, which every fraud team already staffs — so the
-    labels are free rather than requiring an annotation project.
-
-    - analyst approves a flagged transaction -> false positive -> raise the bar
-    - analyst rejects one                    -> true positive  -> hold, nudge down
-    - fraud surfaces after auto-approval     -> false negative -> lower the bar sharply
-    """
+    """Moves the review and reject boundaries in response to human decisions."""
 
     review_at: float = 6.0
     reject_at: float = 14.0
@@ -38,7 +28,6 @@ class ThresholdTuner:
     def record_false_positive(self, score: float) -> None:
         """Legitimate traffic got flagged: become less twitchy."""
         self.false_positives += 1
-        # Move just past the score that caused the noise, damped by the learning rate.
         target = max(score, self.review_at)
         self.review_at += self.rate * (target - self.review_at) + self.rate
         self._clamp("false_positive")
@@ -52,11 +41,7 @@ class ThresholdTuner:
         self._clamp("true_positive")
 
     def record_false_negative(self, score: float) -> None:
-        """Fraud slipped through: tighten decisively.
-
-        Weighted harder than a false positive because the costs are not symmetric — an
-        annoyed customer is cheaper than a drained account.
-        """
+        """Fraud slipped through: tighten decisively."""
         self.false_negatives += 1
         target = min(score, self.review_at)
         self.review_at -= self.rate * 1.5 * max(self.review_at - target, 1.0)
@@ -64,8 +49,6 @@ class ThresholdTuner:
 
     def _clamp(self, cause: str) -> None:
         self.review_at = min(max(self.review_at, self.min_review), self.max_review)
-        # Reject must stay meaningfully above review or the review band vanishes and
-        # every flagged transaction is auto-refused.
         self.reject_at = min(max(self.reject_at, self.review_at + self.min_gap), self.max_reject)
         self.history.append((cause, round(self.review_at, 2), round(self.reject_at, 2)))
 
@@ -76,11 +59,7 @@ class ThresholdTuner:
 
 @dataclass
 class StaticThresholds(ThresholdTuner):
-    """Control group: identical interface, but never moves.
-
-    Used by the evaluation to answer "does the adaptation actually help, or does the
-    learned baseline alone explain the numbers?"
-    """
+    """Control group: identical interface, but never moves."""
 
     def record_false_positive(self, score: float) -> None:
         self.false_positives += 1

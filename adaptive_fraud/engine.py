@@ -54,13 +54,7 @@ class Assessment:
 
 
 class AdaptiveEngine:
-    """Scores transactions against a baseline that is learned, never configured.
-
-    The score is in **bits of surprise**: how unlikely this transaction is under
-    everything currently believed about the customer. Bits are additive across
-    independent signals, which is why they can be summed without inventing weights —
-    the numbers come from the model rather than from a tuning session.
-    """
+    """Scores transactions against a baseline that is learned, never configured."""
 
     def __init__(self, tuner: ThresholdTuner | None = None) -> None:
         self.prior = PopulationPrior()
@@ -69,7 +63,6 @@ class AdaptiveEngine:
         self._pending: dict[int, tuple[Transaction, Assessment]] = {}
         self._next_id = 1
 
-    # ---------------------------------------------------------------- scoring
 
     def profile_for(self, customer_id: str) -> CustomerProfile:
         if customer_id not in self.profiles:
@@ -111,8 +104,6 @@ class AdaptiveEngine:
         if z <= 1.5:
             return []
 
-        # Surprisal of a one-sided Gaussian tail, in bits. Grows with the square of z,
-        # so genuinely extreme amounts dominate without any hand-set weight.
         bits = (z * z - 1.5 * 1.5) / (2 * math.log(2))
         source = "their own history" if profile.confidence() > 0.5 else "the population baseline"
         return [Signal(
@@ -137,8 +128,6 @@ class AdaptiveEngine:
     def _device_signal(self, tx: Transaction, profile: CustomerProfile) -> list[Signal]:
         if profile.devices.is_known(tx.device_id):
             return []
-        # An unfamiliar device means little for a customer we barely know, and a lot for
-        # one with a long, consistent history. Confidence scales it automatically.
         bits = 2.0 * profile.confidence()
         if bits < 0.2:
             return []
@@ -184,7 +173,6 @@ class AdaptiveEngine:
 
         return signals
 
-    # ---------------------------------------------------------------- the loop
 
     def submit(self, tx: Transaction) -> tuple[int, Assessment]:
         """Score a transaction and record it. Returns a handle for later resolution."""
@@ -194,11 +182,9 @@ class AdaptiveEngine:
         handle = self._next_id
         self._next_id += 1
 
-        # Attempts always count toward velocity, decided or not.
         profile.note_attempt(tx.timestamp, tx.country)
 
         if assessment.decision is Decision.APPROVE:
-            # Auto-approved traffic is trusted enough to learn from immediately.
             self._absorb(tx, profile)
         else:
             self._pending[handle] = (tx, assessment)
@@ -206,11 +192,7 @@ class AdaptiveEngine:
         return handle, assessment
 
     def resolve(self, handle: int, approved: bool) -> None:
-        """An analyst's ruling on a flagged transaction.
-
-        This is the supervised signal. Approving a flagged transaction says the engine
-        was too twitchy; rejecting says it was right. Both move the thresholds.
-        """
+        """An analyst's ruling on a flagged transaction."""
         entry = self._pending.pop(handle, None)
         if entry is None:
             return
